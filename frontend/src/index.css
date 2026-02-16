@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+
+:root {
+  /* Docu-themed color palette - Light */
+  --docu-bg: #fcfaf8;
+  --docu-sidebar: #f3f0ec;
+  --docu-border: #e2e0dc;
+  --docu-text-main: #1d1d1b;
+  --docu-text-secondary: #6e6e66;
+  --docu-accent: #d97706; /* Soft amber */
+  --docu-message-user: #f3f0ec;
+  --docu-message-ai: transparent;
+
+  /* Button Tokens */
+  --btn-primary-bg: #1d1d1b;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-text: #1d1d1b;
+
+  --font-docu: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.dark {
+  /* Docu-themed color palette - Dark */
+  --docu-bg: #151513;
+  --docu-sidebar: #1f1f1d;
+  --docu-border: #2d2d2a;
+  --docu-text-main: #e8e8e3;
+  --docu-text-secondary: #a1a19a;
+  --docu-message-user: #242422;
+  --docu-accent: #fbbf24;
+
+  /* Button Tokens - Dark */
+  --btn-primary-bg: #fbbf24; /* Amber accent for visibility */
+  --btn-primary-text: #151513;
+  --btn-secondary-bg: #1f1f1d;
+  --btn-secondary-text: #e8e8e3;
+}
+
+body {
+  background-color: var(--docu-bg);
+  color: var(--docu-text-main);
+  font-family: var(--font-docu);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Docu styling utilities */
+.docu-card {
+  background-color: var(--docu-bg);
+  border: 1px solid var(--docu-border);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.docu-sidebar {
+  background-color: var(--docu-sidebar);
+  border-right: 1px solid var(--docu-border);
+}
+
+.docu-input {
+  background-color: var(--docu-bg);
+  border: 1px solid var(--docu-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.docu-input:focus {
+  border-color: var(--docu-accent);
+}
+
+.docu-input-icon {
+  padding-left: 3.5rem !important;
+}

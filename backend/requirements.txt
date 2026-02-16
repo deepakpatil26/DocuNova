@@ -1,0 +1,65 @@
+# Core Framework
+fastapi
+uvicorn[standard]
+python-dotenv
+
+# Database
+sqlalchemy
+psycopg2-binary
+aiosqlite
+alembic
+
+# Authentication
+# Firebase SDK for auth (primary identity provider)
+firebase-admin
+
+# Vector Database
+qdrant-client
+
+# Document Processing
+#PyPDF2==3.0.1
+pdfplumber
+python-multipart
+chardet
+
+# Embeddings & LLM
+sentence-transformers
+groq
+openai
+langchain
+langchain-community
+
+
+# Vector Database
+qdrant-client
+
+# Document Processing
+#PyPDF2==3.0.1
+pdfplumber
+python-multipart
+chardet
+
+# Embeddings & LLM
+sentence-transformers
+groq
+openai
+langchain
+langchain-community
+
+# Utilities
+pydantic
+pydantic-settings
+httpx
+aiofiles
+
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+#httpx  # Removed duplicate
+
+# Rate Limiting
+slowapi
+
+# Monitoring
+sentry-sdk[fastapi]
