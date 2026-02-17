@@ -24,7 +24,7 @@ chardet
 pdfminer.six
 
 # Embeddings & LLM
-sentence-transformers
+fastembed
 groq
 openai
 langchain

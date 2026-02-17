@@ -1,4 +1,4 @@
-# from sentence_transformers import SentenceTransformer  # Moved to lazy import in model property
+from fastembed import TextEmbedding
 from typing import List
 import numpy as np
 import re
@@ -7,28 +7,21 @@ from ..core.config import settings
 
 class EmbeddingService:
     def __init__(self):
-        # Initialize with a light model by default
-        self.model_name = settings.EMBEDDING_MODEL
+        # fastembed is much faster and doesn't require torch
+        self.model_name = "BAAI/bge-small-en-v1.5" # Very fast and efficient
         self._model = None
-        self._use_fallback = False
 
     @property
     def model(self):
-        if self._use_fallback:
-            return None
-        
         if self._model is None:
             try:
-                from sentence_transformers import SentenceTransformer
-                print(f"Loading embedding model: {self.model_name}...")
-                self._model = SentenceTransformer(
-                    self.model_name,
-                    local_files_only=settings.EMBEDDING_LOCAL_FILES_ONLY
-                )
-                print("Embedding model loaded.")
+                print(f"Loading fastembed model: {self.model_name}...")
+                self._model = TextEmbedding(model_name=self.model_name)
+                print("Fastembed model loaded.")
             except Exception as e:
-                print(f"Embedding model load failed, using fallback embeddings: {e}")
-                self._use_fallback = True
+                print(f"Fastembed model load failed: {e}")
+                # Fallback to a simple hash-based embedding if even fastembed fails
+                return None
         return self._model
 
     def _fallback_embed_text(self, text: str) -> List[float]:
@@ -53,21 +46,23 @@ class EmbeddingService:
         """Generate embedding for a single text"""
         if self.model is None:
             return self._fallback_embed_text(text)
-        embedding = self.model.encode(text, convert_to_numpy=True)
-        return embedding.tolist()
+        
+        # fastembed.embed returns a generator
+        embeddings = list(self.model.embed([text]))
+        return embeddings[0].tolist()
 
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for multiple texts"""
         if self.model is None:
             return [self._fallback_embed_text(t) for t in texts]
-        embeddings = self.model.encode(texts, convert_to_numpy=True, show_progress_bar=True)
-        return embeddings.tolist()
+            
+        embeddings = list(self.model.embed(texts))
+        return [e.tolist() for e in embeddings]
 
     def get_dimension(self) -> int:
         """Get embedding dimension"""
-        if self.model is None:
-            return settings.EMBEDDING_DIMENSION
-        return self.model.get_sentence_embedding_dimension()
+        # BAAI/bge-small-en-v1.5 is 384
+        return 384
 
 # Singleton instance
 embedding_service = EmbeddingService()
