@@ -6,6 +6,7 @@ from .api.routes import documents, query, conversations, admin, stats, auth
 from .core.auth import seed_admin
 from .core.rate_limiter import limiter, rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from contextlib import asynccontextmanager
 import logging
 
 # Configure logging
