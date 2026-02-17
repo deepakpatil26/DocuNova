@@ -12,32 +12,15 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from contextlib import asynccontextmanager
-
-# Define lifespan for async startup
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create database tables
-    print("Initializing database...")
+    logger.info("Initializing database...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-from contextlib import asynccontextmanager
-
-# Define lifespan for async startup
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Create database tables
-    print("Initializing database...")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    print("Database initialized.")
+    logger.info("Database initialized.")
     
-    # Seed admin user
+    # Seed admin user (currently a no-op)
     await seed_admin()
     yield
 

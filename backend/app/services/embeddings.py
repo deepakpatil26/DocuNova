@@ -1,4 +1,4 @@
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer  # Moved to lazy import in model property
 from typing import List
 import numpy as np
 import re
@@ -7,7 +7,7 @@ from ..core.config import settings
 
 class EmbeddingService:
     def __init__(self):
-        # Initialize with a lightweight model by default to avoid large downloads during dev
+        # Initialize with a light model by default
         self.model_name = settings.EMBEDDING_MODEL
         self._model = None
         self._use_fallback = False
@@ -16,9 +16,11 @@ class EmbeddingService:
     def model(self):
         if self._use_fallback:
             return None
+        
         if self._model is None:
-            print(f"Loading embedding model: {self.model_name}...")
             try:
+                from sentence_transformers import SentenceTransformer
+                print(f"Loading embedding model: {self.model_name}...")
                 self._model = SentenceTransformer(
                     self.model_name,
                     local_files_only=settings.EMBEDDING_LOCAL_FILES_ONLY
