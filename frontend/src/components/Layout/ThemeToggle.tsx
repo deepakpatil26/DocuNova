@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
+import { Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const ThemeToggle: React.FC = () => {

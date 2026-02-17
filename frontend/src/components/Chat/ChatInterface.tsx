@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, Loader2, BookOpen, Plus, Layout, CheckSquare, Square } from 'lucide-react';
+import { Send, User, Bot, Loader2, BookOpen, Layout, CheckSquare, Square } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { createConversation, getConversationHistory, listDocuments } from '../../services/api';
@@ -135,10 +135,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialDocumentIds, conve
     setInput('');
   };
 
-  const startNewChat = () => {
-    setCurrentConversationId(null);
-    setMessages([]);
-  };
 
   const toggleDocument = (docId: string) => {
     setSelectedDocumentIds((prev) =>
