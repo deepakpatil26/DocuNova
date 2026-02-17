@@ -33,13 +33,14 @@ DocuNova is a high-performance, enterprise-ready RAG (Retrieval-Augmented Genera
 ## 🌐 Deployment
 
 DocuNova is currently deployed and live at:
-**[👉 View Live Demo](https://docunova.example.com)** _(Replace this with your actual URL)_
+**[👉 View Live Demo](https://docu-nova.vercel.app/)**
 
 ### Backend Infrastructure
 
-- **API**: FastAPI hosted on [Your Provider]
-- **Vector DB**: Qdrant Cloud
-- **Auth**: Firebase
+- **Frontend**: [Vercel](https://docu-nova.vercel.app/)
+- **API**: [Render](https://docunova-backend.onrender.com) (FastAPI)
+- **Vector DB**: Qdrant Cloud (AWS Oregon)
+- **Auth**: Firebase Authentication
 
 ---
 
