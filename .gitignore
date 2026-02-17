@@ -59,6 +59,7 @@ Thumbs.db
 *.json
 !package.json
 !tsconfig.json
+!vercel.json
 !backend/requirements.txt
 docuchat-9fe8c-firebase-adminsdk-fbsvc-a862e34377.json
 backend/.env
