@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import uuid
 
-from ...core.database import get_db
+from ...core.database import get_db, AsyncSessionLocal
 from ...models.document import Conversation, Message
 from ...services.rag import rag_service
 from ...services.usage_service import usage_service
@@ -107,7 +107,6 @@ async def query_rag(
     }
 
 @router.post("/stream")
-@limiter.limit("20/minute")
 async def query_rag_stream(
     request: Request,  # Required for rate limiter
     query_request: QueryRequest,
@@ -143,39 +142,58 @@ async def query_rag_stream(
 
     async def event_generator():
         full_response = ""
-        async for chunk in rag_service.query_stream(
-            question=query_request.question,
-            document_ids=query_request.document_ids,
-            conversation_history=conversation_history,
-            user_id=str(user.id)
-        ):
-            full_response += chunk
-            yield chunk
-
-        # Track token usage after streaming completes
-        estimated_tokens = len(full_response) // 4
-        await usage_service.add_tokens(db, str(user.id), estimated_tokens)
-        
-        # After streaming is done, save to DB if conversation exists
-        if query_request.conversation_id and conversation:
-            # User message
-            user_msg = Message(
-                conversation_id=query_request.conversation_id,
-                role="user",
-                content=query_request.question
-            )
-            db.add(user_msg)
+        try:
+            print(f"DEBUG: Starting event_generator for question: {query_request.question[:30]}...")
+            chunk_count = 0
+            async for chunk in rag_service.query_stream(
+                question=query_request.question,
+                document_ids=query_request.document_ids,
+                conversation_history=conversation_history,
+                user_id=str(user.id)
+            ):
+                full_response += chunk
+                chunk_count += 1
+                if chunk_count % 10 == 0:
+                    print(f"DEBUG: Yielded {chunk_count} chunks so far...")
+                yield chunk
             
-            # Assistant message
-            ai_msg = Message(
-                conversation_id=query_request.conversation_id,
-                role="assistant",
-                content=full_response,
-                sources=[] # In streaming, we'll keep sources empty for now or handle separately
-            )
-            db.add(ai_msg)
-            conversation.updated_at = datetime.utcnow()
-            await db.commit()
+            print(f"DEBUG: Streaming finished. Total chunks: {chunk_count}. Full response length: {len(full_response)}")
+            
+            # Use a fresh session for persistence
+            async with AsyncSessionLocal() as gen_db:
+                print("DEBUG: Saving conversation state to DB...")
+                # Track token usage
+                estimated_tokens = len(full_response) // 4
+                await usage_service.add_tokens(gen_db, str(user.id), estimated_tokens)
+                
+                if query_request.conversation_id:
+                    conv_result = await gen_db.execute(
+                        select(Conversation).filter(Conversation.id == query_request.conversation_id)
+                    )
+                    gen_conv = conv_result.scalar_one_or_none()
+                    
+                    if gen_conv:
+                        user_msg = Message(
+                            conversation_id=query_request.conversation_id,
+                            role="user",
+                            content=query_request.question
+                        )
+                        gen_db.add(user_msg)
+                        
+                        ai_msg = Message(
+                            conversation_id=query_request.conversation_id,
+                            role="assistant",
+                            content=full_response,
+                            sources=[] 
+                        )
+                        gen_db.add(ai_msg)
+                        gen_conv.updated_at = datetime.utcnow()
+                        await gen_db.commit()
+                        print("DEBUG: Conversation state saved successfully.")
+        except Exception as e:
+            print(f"FATAL ERROR in streaming event_generator: {e}")
+            import traceback
+            traceback.print_exc()
 
     return StreamingResponse(event_generator(), media_type="text/plain")
 

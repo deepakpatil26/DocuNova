@@ -83,43 +83,52 @@ class RAGService:
         """
         Streaming RAG pipeline: retrieve context and yield streaming LLM response
         """
-        # Step 1: Embed the question
-        question_embedding = embedding_service.embed_text(question)
+        try:
+            # Step 1: Embed the question
+            print(f"DEBUG: Embedding question: '{question[:30]}...'")
+            question_embedding = embedding_service.embed_text(question)
+            print("DEBUG: Question embedded successfully.")
 
-        # Step 2: Retrieve relevant chunks
-        relevant_chunks = vector_store.search(
-            query_embedding=question_embedding,
-            document_ids=document_ids,
-            user_id=user_id
-        )
+            # Step 2: Retrieve relevant chunks
+            print(f"DEBUG: Searching vector store (docs: {document_ids}, user: {user_id})...")
+            relevant_chunks = vector_store.search(
+                query_embedding=question_embedding,
+                document_ids=document_ids,
+                user_id=user_id
+            )
+            print(f"DEBUG: Found {len(relevant_chunks)} relevant chunks.")
 
-        if not relevant_chunks:
-            yield "I couldn't find any relevant information in the documents to answer your question."
-            return
+            if not relevant_chunks:
+                print("DEBUG: No relevant chunks found. Yielding default message.")
+                yield "I couldn't find any relevant information in the documents to answer your question."
+                return
 
-        # Step 3: Construct context
-        context_parts = []
-        for idx, chunk in enumerate(relevant_chunks, 1):
-            metadata = chunk["metadata"]
-            source_info = f"[Document: {metadata.get('filename', 'Unknown')}"
-            if metadata.get('page'):
-                source_info += f", Page {metadata['page']}"
-            source_info += "]"
-            context_parts.append(f"{source_info}\n{chunk['text']}\n")
+            # Step 3: Construct context
+            context_parts = []
+            for idx, chunk in enumerate(relevant_chunks, 1):
+                metadata = chunk["metadata"]
+                source_info = f"[Document: {metadata.get('filename', 'Unknown')}"
+                if metadata.get('page'):
+                    source_info += f", Page {metadata['page']}"
+                source_info += "]"
+                context_parts.append(f"{source_info}\n{chunk['text']}\n")
 
-        context = "\n---\n".join(context_parts)
+            context = "\n---\n".join(context_parts)
+            print(f"DEBUG: Context constructed (length: {len(context)}). Starting LLM stream...")
 
-        # Step 4 & 5: Stream answer and provide sources at the end
-        # We'll use a special delimiter or just yield the text
-        async for chunk in llm_service.generate_stream(
-            context=context,
-            question=question,
-            conversation_history=conversation_history
-        ):
-            yield chunk
-
-        # Optional: Yield sources as a JSON string at the end metadata
-        # For now, we'll keep it simple and just stream the text.
+            # Step 4 & 5: Stream answer
+            async for chunk in llm_service.generate_stream(
+                context=context,
+                question=question,
+                conversation_history=conversation_history
+            ):
+                yield chunk
+            print("DEBUG: RAG streaming complete.")
+        except Exception as e:
+            print(f"ERROR in RAG query_stream: {e}")
+            import traceback
+            traceback.print_exc()
+            yield f"Error in RAG service: {str(e)}"
 
 # Singleton instance
 rag_service = RAGService()

@@ -22,6 +22,8 @@ class VectorStore:
     def _ensure_collection(self):
         """Create collection if it doesn't exist, or recreate if settings mismatch"""
         try:
+            from qdrant_client.models import PayloadSchemaType
+            print(f"DEBUG: Ensuring collection '{settings.QDRANT_COLLECTION_NAME}' exists...")
             collections = self.client.get_collections().collections
             collection_names = [col.name for col in collections]
 
@@ -37,6 +39,7 @@ class VectorStore:
                     collection_names.remove(settings.QDRANT_COLLECTION_NAME)
 
             if settings.QDRANT_COLLECTION_NAME not in collection_names:
+                print(f"DEBUG: Creating collection '{settings.QDRANT_COLLECTION_NAME}'...")
                 self.client.create_collection(
                     collection_name=settings.QDRANT_COLLECTION_NAME,
                     vectors_config=VectorParams(
@@ -45,8 +48,25 @@ class VectorStore:
                     )
                 )
                 print(f"Created collection: {settings.QDRANT_COLLECTION_NAME} with COSINE distance")
+            
+            # Always ensure indexes exist (idempotent)
+            print("DEBUG: Ensuring payload indexes exist...")
+            self.client.create_payload_index(
+                collection_name=settings.QDRANT_COLLECTION_NAME,
+                field_name="metadata.user_id",
+                field_schema=PayloadSchemaType.KEYWORD,
+            )
+            self.client.create_payload_index(
+                collection_name=settings.QDRANT_COLLECTION_NAME,
+                field_name="metadata.document_id",
+                field_schema=PayloadSchemaType.KEYWORD,
+            )
+            print("DEBUG: Payload indexes ensured.")
+
         except Exception as e:
-            print(f"Error ensuring collection: {e}")
+            print(f"FATAL ERROR ensuring collection: {e}")
+            # Do NOT set ensured to True if it failed
+            raise e
 
     def upsert_chunks(self, chunks: List[Dict[str, Any]], embeddings: List[List[float]]):
         """Insert or update chunks with embeddings"""
@@ -136,20 +156,30 @@ class VectorStore:
 
     def delete_by_document(self, document_id: str):
         """Delete all chunks for a document"""
-        self.ensure_collection()
-        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        try:
+            self.ensure_collection()
+            from qdrant_client.models import Filter, FieldCondition, MatchValue, FilterSelector
 
-        self.client.delete(
-            collection_name=settings.QDRANT_COLLECTION_NAME,
-            points_selector=Filter(
-                must=[
-                    FieldCondition(
-                        key="metadata.document_id",
-                        match=MatchValue(value=document_id)
+            print(f"DEBUG: Deleting points for document_id: {document_id}")
+            self.client.delete(
+                collection_name=settings.QDRANT_COLLECTION_NAME,
+                points_selector=FilterSelector(
+                    filter=Filter(
+                        must=[
+                            FieldCondition(
+                                key="metadata.document_id",
+                                match=MatchValue(value=str(document_id))
+                            )
+                        ]
                     )
-                ]
+                )
             )
-        )
+            print(f"DEBUG: Deletion request sent to Qdrant for doc {document_id}")
+        except Exception as e:
+            print(f"ERROR: Qdrant deletion failed for doc {document_id}: {e}")
+            if "not found" in str(e).lower():
+                return
+            raise e
 
 # Singleton instance
 vector_store = VectorStore()

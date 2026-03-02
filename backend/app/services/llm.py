@@ -1,12 +1,12 @@
-from groq import Groq
-from typing import List, Dict, Any, Optional
+from groq import AsyncGroq
+from typing import List, Dict, Any, Optional, AsyncGenerator
 from ..core.config import settings
 
 class LLMService:
     def __init__(self):
         self.client = None
         if settings.GROQ_API_KEY:
-            self.client = Groq(api_key=settings.GROQ_API_KEY)
+            self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
         self.model = settings.DEFAULT_LLM_MODEL
 
     async def generate_answer(self, context: str, question: str, conversation_history: List[Dict] = None) -> str:
@@ -60,7 +60,7 @@ Please provide a well-sourced answer based on the context above."""
 
         # Call LLM
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=0.3,  # Lower temperature for more factual responses
@@ -73,7 +73,7 @@ Please provide a well-sourced answer based on the context above."""
             print(f"LLM error: {e}")
             return f"Error generating response: {str(e)}"
 
-    async def generate_stream(self, context: str, question: str, conversation_history: List[Dict] = None):
+    async def generate_stream(self, context: str, question: str, conversation_history: List[Dict] = None) -> AsyncGenerator[str, None]:
         """
         Generate streaming answer using LLM with context
         """
@@ -117,7 +117,8 @@ Please provide a well-sourced answer based on the context above."""
         messages.append({"role": "user", "content": user_prompt})
 
         try:
-            stream = self.client.chat.completions.create(
+            print(f"DEBUG: Calling Groq API (model: {self.model})...")
+            stream = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=0.3,
@@ -125,12 +126,21 @@ Please provide a well-sourced answer based on the context above."""
                 stream=True,
             )
 
-            for chunk in stream:
+            chunk_count = 0
+            async for chunk in stream:
                 if chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
+                    content = chunk.choices[0].delta.content
+                    chunk_count += 1
+                    if chunk_count == 1:
+                        print(f"DEBUG: Received FIRST chunk from Groq: '{content[:10]}...'")
+                    yield content
+            
+            print(f"DEBUG: Groq internal stream finished. Total chunks from Groq: {chunk_count}")
 
         except Exception as e:
             print(f"LLM streaming error: {e}")
+            import traceback
+            traceback.print_exc()
             yield f"Error generating response: {str(e)}"
 
 # Singleton instance

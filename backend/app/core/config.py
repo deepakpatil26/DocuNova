@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # RAG Configuration
     TOP_K_RESULTS: int = 5
-    SIMILARITY_THRESHOLD: float = 0.7
+    SIMILARITY_THRESHOLD: float = 0.3
 
     # Authentication
     SECRET_KEY: str = "8cc683796856012ccfac39f72b64d1894b95f2e633d659ad125f46487e915478"
